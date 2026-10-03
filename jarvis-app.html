@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jarvis</title>
+<meta name="theme-color" content="#04060b">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+:root{--bg:#04060b;--eye:#8be9ff;--glow:rgba(80,200,255,.45);--ink:#d7e9f2;--dim:#6f8794;--line:#16222c;--field:#0b121a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font-family:"Nunito","Trebuchet MS",system-ui,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column}
+#face{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;cursor:pointer;min-height:0;-webkit-tap-highlight-color:transparent}
+.eyes{display:flex;gap:min(9vw,44px);transform:translate(var(--lx,0),var(--ly,0));transition:transform .35s ease-out}
+.eye{position:relative;overflow:hidden;width:min(27vw,125px);height:min(36vw,160px);background:var(--eye);border-radius:42%;box-shadow:0 0 46px var(--glow);transition:transform .14s,border-radius .3s,background .3s}
+.blink .eye{transform:scaleY(.07)}
+.happy .eye::after{content:"";position:absolute;left:-12%;right:-12%;bottom:-40%;height:72%;background:var(--bg);border-radius:50%}
+.sad .eye::after{content:"";position:absolute;left:-12%;right:-12%;top:-45%;height:70%;background:var(--bg);border-radius:50%;transform:rotate(10deg)}
+.thinking .eye:nth-child(2){transform:scale(.68)}
+.sleepy .eye{transform:scaleY(.16)}
+.surprised .eye{transform:scale(1.14);border-radius:50%}
+.listening .eye{animation:pulse .9s ease-in-out infinite alternate}
+.talking .eyes{animation:bob .32s ease-in-out infinite alternate}
+@keyframes pulse{to{box-shadow:0 0 80px rgba(120,230,255,.8)}}
+@keyframes bob{to{margin-top:7px}}
+#sub{min-height:3.4em;max-width:min(88vw,520px);text-align:center;font-size:1.05rem;line-height:1.45;color:var(--dim);padding:0 8px}
+#sub b{color:var(--ink);font-weight:600}
+#bar{display:flex;gap:10px;padding:12px 14px 14px;border-top:1px solid var(--line)}
+#txt{flex:1;min-width:0;background:var(--field);border:1px solid var(--line);border-radius:22px;color:var(--ink);font:inherit;font-size:1rem;padding:11px 16px}
+#txt:focus-visible,button:focus-visible{outline:2px solid var(--eye);outline-offset:2px}
+button{border:0;border-radius:50%;width:46px;height:46px;background:var(--field);color:var(--eye);font-size:1.25rem;cursor:pointer;border:1px solid var(--line)}
+#mic.on{background:var(--eye);color:var(--bg)}
+.stage{position:relative}
+.dizzy .eye{height:min(27vw,125px);border-radius:50%;background:repeating-radial-gradient(circle,var(--eye) 0 6px,var(--bg) 6px 12px);animation:spin .8s linear infinite}
+.dizzy .eyes{animation:wobble .45s ease-in-out infinite alternate}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes wobble{from{transform:translateX(-14px) rotate(-5deg)}to{transform:translateX(14px) rotate(5deg)}}
+.hand{position:absolute;bottom:-70px;width:46px;height:74px;border-radius:23px 23px 16px 16px;background:var(--eye);box-shadow:0 0 30px var(--glow);opacity:0;transform:translateY(90px);transition:transform .35s cubic-bezier(.3,1.5,.5,1),opacity .2s}
+.hand::before{content:"";position:absolute;top:26px;width:18px;height:30px;border-radius:9px;background:var(--eye)}
+.hand.l{left:-62px;--r:-14deg}.hand.l::before{right:-9px}
+.hand.r{right:-62px;--r:14deg}.hand.r::before{left:-9px}
+.handsup .hand{opacity:1;transform:translateY(-150px) rotate(var(--r))}
+.zzz{position:absolute;right:-34px;top:-8px;opacity:0;font-weight:800;color:var(--eye);pointer-events:none}
+.zzz span{position:absolute;left:0;top:0;opacity:0;animation:zfloat 2.6s ease-in infinite;text-shadow:0 0 12px var(--glow)}
+.zzz span:nth-child(1){font-size:1.1rem}.zzz span:nth-child(2){font-size:1.5rem;animation-delay:.85s}.zzz span:nth-child(3){font-size:2rem;animation-delay:1.7s}
+.sleepy .zzz{opacity:1}
+@keyframes zfloat{0%{opacity:0;transform:translate(0,14px)}25%{opacity:1}100%{opacity:0;transform:translate(22px,-52px)}}
+#panel{position:fixed;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;padding:20px;z-index:9}
+#panel[hidden]{display:none}
+.card{background:var(--field);border:1px solid var(--line);border-radius:18px;padding:18px;width:min(100%,420px);font-size:.95rem}
+.card h2{margin:0 0 12px;font-size:1.1rem}
+.card input{display:block;width:100%;margin-top:6px;background:var(--bg);border:1px solid var(--line);border-radius:12px;color:var(--ink);padding:10px;font:inherit}
+.row{display:flex;gap:8px;margin-top:14px}
+.wide{width:auto;height:auto;border-radius:12px;padding:10px 12px;font-size:.9rem;flex:1;color:var(--ink)}
+@media (prefers-reduced-motion:reduce){.listening .eye,.talking .eyes,.dizzy .eye,.dizzy .eyes,.zzz span{animation:none}.sleepy .zzz span{opacity:1}.eyes,.eye,.hand{transition:none}}
+</style>
+</head>
+<body>
+<div id="face" role="button" tabindex="0" aria-label="Toca la cara para hablar con Jarvis">
+  <div class="stage">
+    <div class="eyes" id="eyes"><div class="eye"></div><div class="eye"></div></div>
+    <div class="hand l"></div><div class="hand r"></div>
+    <div class="zzz" aria-hidden="true"><span>z</span><span>Z</span><span>Z</span></div>
+  </div>
+  <div id="sub">Toca mi cara y háblame.</div>
+</div>
+<div id="bar">
+  <input id="txt" type="text" placeholder="Escribe aquí…" autocomplete="off" aria-label="Mensaje">
+  <button id="send" aria-label="Enviar">➤</button>
+  <button id="cfg" aria-label="Ajustes">⚙</button>
+  <button id="mic" aria-label="Hablar">🎤</button>
+</div>
+<div id="panel" hidden><div class="card"><h2>Ajustes de Jarvis</h2>
+<label>Clave de la API de Claude<input id="key" type="password" placeholder="sk-ant-…" autocomplete="off"></label>
+<p id="mem"></p>
+<div class="row"><button id="save" class="wide">Guardar</button><button id="wipe" class="wide">Borrar memoria</button><button id="close" class="wide">Cerrar</button></div></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const face=$('face'),eyes=$('eyes'),sub=$('sub'),txt=$('txt'),mic=$('mic');
+const MOODS=['happy','sad','thinking','sleepy','surprised','listening','talking','dizzy'];
+const MAP={feliz:'happy',triste:'sad',pensando:'thinking',sorprendido:'surprised',neutral:''};
+let history=[],busy=false,sample=null,idleT,rec=null,listening=false,mood='';
+
+function setMood(m){MOODS.forEach(c=>eyes.classList.remove(c));face.classList.remove(...MOODS);
+  mood=m;if(m){face.classList.add(m)}}
+const look=(x,y)=>{eyes.style.setProperty('--lx',x+'px');eyes.style.setProperty('--ly',y+'px')};
+function say(html){sub.innerHTML=html}
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
+
+// parpadeo y miradas
+(function blinkLoop(){face.classList.add('blink');setTimeout(()=>face.classList.remove('blink'),140);setTimeout(blinkLoop,2200+Math.random()*3200)})();
+(function lookLoop(){if(!busy&&mood!=='sleepy'&&mood!=='thinking'&&!listening){look((Math.random()-.5)*50,(Math.random()-.5)*26)}setTimeout(lookLoop,1400+Math.random()*2200)})();
+function wake(){clearTimeout(idleT);if(mood==='sleepy')setMood('');idleT=setTimeout(()=>{if(!busy&&!listening){setMood('sleepy');look(0,10);say('Zzz…')}},60000)}
+wake();
+
+// voz
+function stopTalk(){try{window.speechSynthesis&&window.speechSynthesis.cancel()}catch(e){}}
+function speak(text,done){
+  if(!window.speechSynthesis||typeof SpeechSynthesisUtterance==='undefined'){done&&done();return}
+  stopTalk();
+  const u=new SpeechSynthesisUtterance(text),lang=(navigator.language||'').startsWith('es')?navigator.language:'es-ES';
+  u.lang=lang;const v=window.speechSynthesis.getVoices().find(v=>v.lang.startsWith('es'));if(v)u.voice=v;
+  u.onstart=()=>face.classList.add('talking');
+  const end=()=>{face.classList.remove('talking');done&&done()};
+  u.onend=end;u.onerror=end;window.speechSynthesis.speak(u);
+}
+
+// cerebro: Claude
+const SYS='Eres Jarvis, un asistente personal con cara de robot amigable, ingenioso y cálido. Responde siempre en español, con máximo 2 frases cortas, porque tus respuestas se leen en voz alta. Empieza SIEMPRE con una etiqueta de emoción entre corchetes: [feliz], [pensando], [sorprendido], [triste] o [neutral]. No uses emojis ni formato.';
+const store={get:(k,d)=>{try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set:(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let facts=store.get('jv_facts',[]);history=store.get('jv_hist',[]);
+async function callClaude(msgs){
+  const sys=SYS+(facts.length?'\n\nLo que sabes del usuario (úsalo solo cuando venga al caso):\n- '+facts.join('\n- '):'');
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':store.get('jv_key',''),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:300,system:sys,messages:msgs})});
+  if(!r.ok){const e=new Error('http');e.status=r.status;throw e}
+  const d=await r.json();return d.content.filter(c=>c.type==='text').map(c=>c.text).join('');
+}
+function openSettings(){$('key').value=store.get('jv_key','');$('mem').textContent=facts.length+' cosas recordadas. Dile “recuerda que…” para enseñarle algo y “olvida todo” para borrar.';$('panel').hidden=false}
+$('cfg').onclick=openSettings;$('close').onclick=()=>{$('panel').hidden=true};
+$('save').onclick=()=>{store.set('jv_key',$('key').value.trim());$('panel').hidden=true;say('Clave guardada. Toca mi cara y háblame.')};
+$('wipe').onclick=()=>{facts=[];history=[];store.set('jv_facts',[]);store.set('jv_hist',[]);openSettings()};
+async function ask(q){
+  q=q.trim();if(!q||busy)return;
+  if(/manos arriba|arriba las manos|pistola|\bpum\b|\bbang\b/i.test(q)){txt.value='';return handsUp()}
+  const rm=q.match(/^(?:jarvis,?\s*)?recuerda(?:\s+que)?\s+(.+)/i);
+  if(rm){facts.push(rm[1].replace(/[.!]+$/,''));store.set('jv_facts',facts.slice(-40));facts=facts.slice(-40);txt.value='';setMood('happy');say('Anotado: '+esc(rm[1]));speak('Anotado.');setTimeout(()=>setMood(''),2500);return}
+  if(/^(?:jarvis,?\s*)?olvida todo/i.test(q)){facts=[];history=[];store.set('jv_facts',[]);store.set('jv_hist',[]);txt.value='';say('Listo, memoria borrada.');speak('Listo, memoria borrada.');return}
+  busy=true;wake();txt.value='';
+  stopTalk();
+  setMood('thinking');look(-22,-20);say('<b>'+esc(q)+'</b>');
+  if(!store.get('jv_key','')){busy=false;setMood('sad');look(0,0);say('Primero pega tu clave en ⚙ ajustes.');openSettings();return}
+  history.push({role:'user',content:q});
+  const turns=history.slice(-10);while(turns.length&&turns[0].role!=='user')turns.shift();
+  try{
+    let t=(await callClaude(turns)).trim(),m='';
+    const tag=t.match(/^\[(\w+)\]\s*/);
+    if(tag){m=MAP[tag[1].toLowerCase()]??'';t=t.slice(tag[0].length)}
+    history.push({role:'assistant',content:t});store.set('jv_hist',history.slice(-20));
+    setMood(m);look(0,0);say(esc(t));
+    speak(t,()=>{busy=false;wake()});
+  }catch(e){
+    history.pop();busy=false;setMood('sad');look(0,0);
+    say(e&&e.status===401?'Tu clave no funciona. Revísala en ⚙ ajustes.':e&&e.status===429?'Voy muy rápido. Espera un momento y repite.':'No pude pensar eso. ¿Tienes internet?');
+  }
+}
+
+// escuchar
+function listen(){
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){say('Tu navegador no entiende voz. Escríbeme abajo o abre esta página en Chrome.');return}
+  if(listening){rec&&rec.stop();return}
+  stopTalk();
+  rec=new SR();rec.lang=(navigator.language||'').startsWith('es')?navigator.language:'es-ES';rec.interimResults=true;
+  let final='';
+  rec.onstart=()=>{listening=true;mic.classList.add('on');setMood('listening');look(0,0);say('Te escucho…');wake()};
+  rec.onresult=e=>{let s='';for(const r of e.results){s+=r[0].transcript;if(r.isFinal)final=s}say('<b>'+esc(s)+'</b>')};
+  rec.onerror=e=>{say(e.error==='not-allowed'?'Dame permiso de micrófono en el navegador.':'No te escuché bien. Toca y repite.')};
+  rec.onend=()=>{listening=false;mic.classList.remove('on');setMood('');if(final)ask(final)};
+  rec.start();
+}
+
+// reacciones
+function react(m,msg,ms){
+  busy=true;wake();stopTalk();
+  setMood(m==='handsup'?'surprised':'dizzy');look(0,0);say(msg);speak(msg);
+  if(m==='handsup')face.classList.add('handsup');
+  setTimeout(()=>{face.classList.remove('handsup');setMood('');busy=false;say('Toca mi cara y háblame.')},ms);
+}
+const handsUp=()=>{if(!busy)react('handsup','¡Me rindo!',3200)};
+const dizzy=()=>{if(!busy)react('dizzy','¡Uy… qué mareo!',3600)};
+
+// toques: 1 = hablar, 2 = manos arriba, 4+ = mareo
+let taps=[],tapT;
+face.addEventListener('click',()=>{
+  const now=Date.now();taps=taps.filter(t=>now-t<2000);taps.push(now);
+  requestMotion();clearTimeout(tapT);
+  if(taps.length>=4){taps=[];dizzy();return}
+  tapT=setTimeout(()=>{if(taps.length===1)listen();else if(taps.length===2){taps=[];handsUp()}},300);
+});
+
+// sacudida del teléfono
+let hits=[],lastShake=0,motionAsked=false;
+function onMotion(e){
+  const a=e.accelerationIncludingGravity;if(!a)return;
+  const m=Math.abs(a.x||0)+Math.abs(a.y||0)+Math.abs(a.z||0),n=Date.now();
+  if(m>40){hits=hits.filter(t=>n-t<900);hits.push(n);
+    if(hits.length>=4&&n-lastShake>5000){lastShake=n;hits=[];dizzy()}}
+}
+function requestMotion(){
+  if(motionAsked)return;motionAsked=true;
+  try{if(window.DeviceMotionEvent&&typeof DeviceMotionEvent.requestPermission==='function')DeviceMotionEvent.requestPermission().catch(()=>{})}catch(e){}
+}
+try{window.addEventListener('devicemotion',onMotion)}catch(e){}
+face.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();listen()}});
+mic.addEventListener('click',listen);
+$('send').addEventListener('click',()=>ask(txt.value));
+txt.addEventListener('keydown',e=>{if(e.key==='Enter')ask(txt.value)});
+txt.addEventListener('input',wake);
+if(!store.get('jv_key',''))setTimeout(openSettings,400);
+</script>
+</body>
+</html>
